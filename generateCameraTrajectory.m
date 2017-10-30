@@ -23,10 +23,11 @@ for i = 1:numViews
     Rs(i,:,:) = rotz(pi/2) * rotx(-pi/2) * roty(-1*curYawAngle);
     
     % Translation vector
-    ts(i,:) = (-1 * squeeze(Rs(i,:,:))' * [radius*cos(curYawAngle); radius*sin(curYawAngle); 0])';
+    % ts(i,:) = (-1 * squeeze(Rs(i,:,:))' * [radius*cos(curYawAngle); radius*sin(curYawAngle); 0])';
+    ts(i,:) = [radius*cos(curYawAngle); radius*sin(curYawAngle); 0]';
     
     % Note that the R and t here can be used to transform a point Xw from
-    % world coordinates to camera coordinates as X_cam = R*Xw + t
+    % world coordinates to camera coordinates as X_cam = R^T*(Xw - t)
     
 end
 
