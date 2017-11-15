@@ -26,11 +26,10 @@ end
 % Compute the scaling factor
 s = sqrt(2) / d;
 
-% Use the scaling factor to scale the points
-scalingTransform = [s, 0, 0; 0, s, 0; 0, 0, 1];
-normalizedPoints = scalingTransform * normalizedPoints;
-
 % Also compute the normalizing transform
 normalizingTransform = [s, 0, -s*centroid(1); 0, s, -s*centroid(2); 0, 0, 1];
+
+% Compute the normalized points
+normalizedPoints = normalizingTransform * unnormalizedPoints;
 
 end

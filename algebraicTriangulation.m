@@ -17,11 +17,6 @@ if size(x1,1) ~= 3 || size(x2,1) ~= 3
     error('x1 and x2 must be homogeneous image coordinates');
 end
 
-% % Preprocession (not sure why?) (but, after this results are identical to
-% % those from torr_triangulate)
-% x1 = x1 ./ 3;
-% x2 = x2 ./ 3;
-
 % Initialize the output matrix
 X = zeros(4,size(x1,2));
 

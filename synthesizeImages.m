@@ -21,9 +21,9 @@ images = cell(numViews);
 
 % Synthesize the images
 for i = 1:numViews
-    images_homogeneous = K * (squeeze(Rs(i,:,:))' * (X - repmat(ts(i,:)',1,numPoints)));
+    images_homogeneous = K * (squeeze(Rs(i,:,:))' * (X  -  repmat(ts(i,:)',1,numPoints)));
     images_homogeneous = images_homogeneous ./ repmat(images_homogeneous(3,:), 3, 1);
-    images{i} = images_homogeneous(1:2,:);
+    images{i} = images_homogeneous;
 end
 
 
