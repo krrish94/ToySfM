@@ -68,6 +68,11 @@ stop = (norm(g,'inf') < tolerance);
 % Levenberg-Marquardt Iterations
 for k = 1:maxIters
     
+    % Print an update every 20 iters
+    if mod(k,50) == 0
+        fprintf('%d iterations complete.\n', k);
+    end
+    
     % Iterate until a feasible point is found
     if ~stop
         % Solve the normal equations for the LM linear system
@@ -77,6 +82,7 @@ for k = 1:maxIters
         if norm(deltap,2) < tolerance * norm(paramVec,2)
             fprintf('Update is too small. Terminating Levenberg-Marquardt iterations. %d iterations complete.\n', k);
             stop = true;
+            break;
         % If it is not, then compute the updated vector (do not update in
         % the original vector, as we will first determine whether or not it
         % decreases the cost).
@@ -100,6 +106,7 @@ for k = 1:maxIters
                 % Store this error
                 errStore = [errStore, err_new];
                 if abs(err_new - err) < tolerance
+                    fprintf('Convergence. Terminating Levenberg-Marquardt iterations. %d iterations complete.\n', k);
                     stop = true;
                     break;
                 else

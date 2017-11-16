@@ -12,7 +12,7 @@ function [J] = computeJacobianMotionAndStructure(paramVec, M, N)
 
 
 % Jacobian matrix initialization
-J = zeros(12*M + 3*N, 12*M + 3*N);
+J = sparse(zeros(12*M + 3*N, 12*M + 3*N));
 
 % Compute Jacobian with respect to motion and structure parameters
 for i = 1:M

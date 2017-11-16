@@ -200,8 +200,8 @@ end
 % Add noise to X_init
 X_init = X_init + 0.3*[randn(size(X_init,1)-1, size(X_init,2)); zeros(1,size(X_init,2))];
 
-% Add noise to Ps
-% Ps = Ps + 0.001*randn(size(Ps));
+% % Add noise to Ps
+% Ps = Ps + 0.01*randn(size(Ps));
 
 
 %% Bundle Adjustment
