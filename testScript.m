@@ -15,9 +15,9 @@ rng('default');
 % Camera intrinsics (focal length, retina-to-image coordinate shifts, focal
 % length scaling). Assume fx = fy (= f).
 f = 1;
-alpha_ccd = 100;
-cx = 50;
-cy = 100;
+alpha_ccd = 10;
+cx = 5;
+cy = 10;
 % Intrinsics matrix
 % K = [alpha_ccd*f, 0, cx; 0, alpha_ccd*f, cy; 0, 0, 1];
 K = eye(3);
@@ -25,7 +25,7 @@ K = eye(3);
 % Generate the cube (centered at the origin; length of each side is 4
 % units; each edge contains 4 points)
 % Ground-Truth world points
-worldPoints_gt = generateCube(4,4);
+worldPoints_gt = generateCube(4,16);
 % worldPoints_gt = load('cubePts.mat', 'cubePts');
 % worldPoints_gt = worldPoints_gt.cubePts;
 
@@ -36,7 +36,7 @@ numViews = 8;
 numPoints = size(worldPoints_gt,2);
 
 % Simulate the camera trajectory (circle) around the cube
-[Rs, ts] = generateCameraTrajectory(numViews, 10);
+[Rs, ts] = generateCameraTrajectory(numViews, 25);
 
 % Camera locations
 camLocs = ts';
@@ -113,8 +113,8 @@ for i = 2:numViews
     
     % Compute the relatvie pose of the current view with respect to the
     % first view
-    % [R_21, t_21] = computeRelativePose(images{1}, images{i}, K);
-    [R_21, t_21, ~, ~, ~] = compute_relative_transformation(images{1}(1:2,:), images{i}(1:2,:), K);
+    [R_21, t_21] = computeRelativePose(images{1}, images{i}, K);
+    % [R_21, t_21, ~, ~, ~] = compute_relative_transformation(images{1}(1:2,:), images{i}(1:2,:), K);
     
     % If this is the second view, use this view to initialize the initial
     % structure estimate as well, by triangulation.
@@ -198,7 +198,7 @@ end
 
 
 % Add noise to X_init
-X_init = X_init + 0.1*[randn(size(X_init,1)-1, size(X_init,2)); zeros(1,size(X_init,2))];
+X_init = X_init + 0.3*[randn(size(X_init,1)-1, size(X_init,2)); zeros(1,size(X_init,2))];
 
 % Add noise to Ps
 % Ps = Ps + 0.001*randn(size(Ps));

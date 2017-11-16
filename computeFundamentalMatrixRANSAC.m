@@ -10,10 +10,6 @@ if nargin < 3
     maxIters = 50;
 end
 
-% If nothing else succeeds, we'll return the same solution as the
-% non-RANSAC implementation.
-F = computeFundamentalMatrix(matches1, matches2);
-
 % Largest Inlier Set
 inliers = [];
 numInliers = -Inf;

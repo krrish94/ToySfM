@@ -12,15 +12,15 @@ function [R, t] = computeRelativePose(image1, image2, K)
 % 'computeFundamentalMatrix' is used for this purpose. This function
 % expects homogenized image coordinates, hence we append a 1 to the image
 % coordinates before passing them to this function.
-F_12 = computeFundamentalMatrix(image1, image2);
+% F_12 = computeFundamentalMatrix(image1, image2);
 % F_12 = fundmatrix(image1, image2);
 % F_12 = optimalRansacfitfundmatrix(image1, image2, 50);
-% F_12 = computeFundamentalMatrixRANSAC(image1, image2);
+F_12 = computeFundamentalMatrixRANSAC(image1, image2);
 % Get the essential matrix from the fundamental matrix
 E_12 = K' * F_12 * K;
 % Get the closest rank-2 approximation to the essential matrix
 [U_12, D_12, V_12] = svd(E_12, 0);
-E_12 = U_12 * diag([D_12(1,1), D_12(1,1), 0]) * V_12;
+E_12 = U_12 * diag([D_12(1,1), D_12(1,1), 0]) * V_12';
 % Clear temporary variables
 clear U_12 D_12 V_12
 

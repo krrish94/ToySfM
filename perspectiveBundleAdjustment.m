@@ -75,7 +75,7 @@ for k = 1:maxIters
         
         % Check if the parameter update is less than tolerance
         if norm(deltap,2) < tolerance * norm(paramVec,2)
-            fprintf('Update is too small. Terminating Levenberg-Marquardt iterations.\n');
+            fprintf('Update is too small. Terminating Levenberg-Marquardt iterations. %d iterations complete.\n', k);
             stop = true;
         % If it is not, then compute the updated vector (do not update in
         % the original vector, as we will first determine whether or not it

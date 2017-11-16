@@ -5,10 +5,10 @@ function [F,A] = computeFundamentalMatrix(matches1, matches2)
 
 
 % Normalize image points
-% [img1, normTf1] = normalizeImagePoints(matches1);
-% [img2, normTf2] = normalizeImagePoints(matches2);
-img1 = matches1;
-img2 = matches2;
+[img1, normTf1] = normalizeImagePoints(matches1);
+[img2, normTf2] = normalizeImagePoints(matches2);
+% img1 = matches1;
+% img2 = matches2;
 
 % Form the linear system Af = 0
 % A = [img2(1,:)'.*img1(1,:)', img2(1,:)'.*img1(2,:)', img2(1,:)'.*img1(3,:)', ...
@@ -28,12 +28,10 @@ clear f;
 
 % Enforce the rank-2 constraint explicitly
 [U, D, V] = svd(F_, 0);
-D
-F = F_;
-% F = U * diag([D(1,1), D(2,2), 0]) * V';
+F = U * diag([D(1,1), D(2,2), 0]) * V';
 clear F_ U D V;
 
-% % Unnormalize
-% F = normTf2' * F * normTf1;
+% Unnormalize
+F = normTf2' * F * normTf1;
 
 end
