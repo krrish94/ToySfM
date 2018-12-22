@@ -1,19 +1,18 @@
-function [Ps_opt, X_opt, err_opt] = perspectiveBundleAdjustment(Ps, X, x)
-% PERSPECTIVEBUNDLEADJUSTMENT  Performs Bundle Adjustment using the 3 x 4
-% projection matrices, 3D points (4 x N), and M images (x) where all points 
-% are assumed to be visible in all the images. Estimates the projection
-% matrices and 3D points by minimizing the reprojection error.
-
-
-% Compute initial reprojection error
-residual = computeReprojectionError(Ps, X, x);
-err = norm(residual,2);
+function [Ps_opt, X_opt, err_opt] = euclideanLmBundleAdjustment(Ps, X, x)
+% EUCLIDEANLMBUNDLEADJUSTMENT  Performs Bundle Adjustment using the 4 x 4
+% transformation matrices, camera calibration matrix K, 3D points (4 x N), and M images (x) 
+% where all points are assumed to be visible in all the images. Estimates the transformation
+% matrices and 3D points by minimizing the reprojection error using the LM optimizer.
 
 % Number of views
 numViews = size(Ps,1);
 
 % Number of points
 numPoints = size(X,2);
+
+% Compute initial reprojection error
+residual = computeReprojectionError(Ps, X, x);
+err = norm(residual,2);
 
 % Optimize only if the reprojection error is above a certian tolerance
 % level
@@ -26,22 +25,18 @@ if err <= tolerance
     return;
 end
 
-% Set up the parameter vector. The parameter vector has 12 variables for 
-% each projection matrix (view), and 3 variables for each 3D point. First,
-% we stack all the projection matrices to form the 12*numViews x 1
-% projection parameter block, followed by the 3*numPoints x 1 3D point
-% parameter block. The overall size of the parameter vector is (12*numViews
-% + 3*numPoints) x 1.
-paramVec = zeros(12*numViews + 3*numPoints, 1);
+% Set up the parameter vector. The parameter vector has 6 variables for 
+% each view (se(3)), and 3 variables for each 3D point.
+
+paramVec = zeros(6*numViews + 3*numPoints, 1);
 for i = 1:numViews
-    tmpVar = squeeze(Ps(i,:,:));
-    paramVec((i-1)*12+1:12*i) = tmpVar(:);
-    clear tmpVar
+    [K,R,t] = decomposeCamera(squeeze(Ps(i,:,:)));
+    paramVec(6*(i-1)+1:6*i) = computeKsi([R -R*t; 0 0 0 1]);
 end
-paramVec(12*numViews+1:end) = reshape(X(1:3,:),[],1);
+paramVec(6*numViews+1:end) = reshape(X(1:3,:),[],1);
 
 % Evaluate the Jacobian at the current guess
-J = computeJacobianMotionAndStructure(paramVec, numViews, numPoints);
+J = computeLieJacobianMotionAndStructure(paramVec, K, numViews, numPoints);
 
 % Coefficient matrix
 A = J'*J;
@@ -87,7 +82,7 @@ for k = 1:maxIters
             % projection matrices and 3D points). This function is for
             % easier interpretability, and for computing reprojection
             % error.
-            [Ps_new, X_new] = unvectorizeParameters(paramVec_new, numViews, numPoints);
+            [Ps_new, X_new] = unvectorizeLieParameters(paramVec_new, K, numViews, numPoints);
             
             % Error resulting from this update
             residual_new = computeReprojectionError(Ps_new, X_new, x);
@@ -106,7 +101,7 @@ for k = 1:maxIters
                     % Update the parameter vector, Jacobian, and the
                     % residuals, etc.
                     paramVec = paramVec_new;
-                    J = computeJacobianMotionAndStructure(paramVec, numViews, numPoints);
+                    J = computeLieJacobianMotionAndStructure(paramVec, K, numViews, numPoints);
                     residual = residual_new;
                     err = norm(residual,2);
                     A = J'*J;
@@ -135,7 +130,7 @@ end
 fprintf('Terminated Levenberg-Marquardt iterations. %d iterations complete.\n', k);
 
 % Prepare outputs to be returned by this function
-[Ps_opt, X_opt] = unvectorizeParameters(paramVec, numViews, numPoints);
+[Ps_opt, X_opt] = unvectorizeLieParameters(paramVec, K, numViews, numPoints);
 err_opt = err;
 
 end
