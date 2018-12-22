@@ -8,6 +8,11 @@
 % camera intrinsics and use that to synthesize images captured by the
 % camera.
 
+clear variables;
+close all;
+clc;
+
+fprintf('Synthesizing the scene and images...\n\n');
 
 % Seed the random number generator (for repeatability)
 rng('default');
@@ -26,8 +31,13 @@ K = eye(3);
 % units; each edge contains 4 points)
 % Ground-Truth world points
 worldPoints_gt = generateCube(4,16);
-% worldPoints_gt = load('cubePts.mat', 'cubePts');
-% worldPoints_gt = worldPoints_gt.cubePts;
+% worldPoints_gt is a [3x56] matrix. 56 = 64(all points) - 8(points inside)
+
+% figure(11);
+% hold on;
+% for i = 1:size(worldPoints_gt,2)
+%     plot3(worldPoints_gt(1,i), worldPoints_gt(2,i), worldPoints_gt(3,i), 'r.')
+% end
 
 % Number of views (= num of cameras = num of images)
 numViews = 8;
@@ -53,7 +63,11 @@ title('The synthetic scene and cameras');
 axis('equal');
 hold on;
 for i = 1:numViews
+    % squeeze is arranging the R(1,:,:), R(2,:,:), R(3,:,:) in row major
+    % order so indirectly it is transposing the caluclated R.
+    % disp(Rs(i,:,:));
     R_cam_W = squeeze(Rs(i,:,:));
+    % disp(R_cam_W)
     % Plot the camera frustum
     plotCameraFrustum(squeeze(Rs(i,:,:)), camLocs(:,i));
     % Plot the camera coordinate frame
@@ -67,8 +81,6 @@ for i = 1:numViews
     text(camLocs(1,i) + R_cam_W(1,3), camLocs(2,i) + R_cam_W(2,3), camLocs(3,i) + R_cam_W(3,3), 'Z', 'Color', 'blue');
     clear R_cam_W;
 end
-
-
 
 % Synthesize images of the cube
 images = synthesizeImages(worldPoints_gt, K, Rs, ts);
@@ -104,11 +116,13 @@ images = synthesizeImages(worldPoints_gt, K, Rs, ts);
 
 %% Construct the initial guess
 
+fprintf('Running 8-point algorithm and algebraic-triangulation sequentially to construct the initial guess for parameters...\n\n');
 
 % For each view (other than the first view, compute the relative pose of
 % the camera with respect to the first view
 R_cur = eye(3);
 t_cur = zeros(3,1);
+
 for i = 2:numViews
     
     % Compute the relatvie pose of the current view with respect to the
@@ -124,6 +138,7 @@ for i = 2:numViews
         
         Ps(1,:,:) = K * [eye(3), [0; 0; 0]];
         Ps(2,:,:) = K * [R_21, t_21];
+        
         X_init = algebraicTriangulation(images{1}, images{2}, squeeze(Ps(1,:,:)), squeeze(Ps(2,:,:)));
         X_init = X_init ./ repmat(X_init(4,:), 4, 1);
         
@@ -150,7 +165,7 @@ for i = 2:numViews
         % triangulation of the first view and the current view and the
         % triangulation of the first view and the second view. For
         % instance, if a distance is measured as d1 in the triangulation of
-        % the first two views, and as d2 in the triangulation of the first
+        % the first two views, and as di in the triangulation of the first
         % view and the current view, the translation t_cur (i.e., t_21
         % computed above) should be rescaled as (d1/di)*t_21.
         P_temp = K * [R_21, t_21];
@@ -201,36 +216,105 @@ end
 X_init = X_init + 0.3*[randn(size(X_init,1)-1, size(X_init,2)); zeros(1,size(X_init,2))];
 
 % Add noise to Ps
-% Ps = Ps + 0.001*randn(size(Ps));
-
+Ps = Ps + 0.001*randn(size(Ps));
 
 %% Bundle Adjustment
 
-% Compute initial reprojection error
-reprojErr = computeReprojectionError(Ps, X_init, images);
-fprintf('Initial reprojection error: %f\n', norm(reprojErr));
+fprintf('Running Bundle Adjustment to refine the motion and structure parameters...\n\n');
 
-% Perform projective Bundle Adjustment (solves for the projection matrices
-% and 3D points)
-Ps_opt = Ps;
-X_opt = X_init;
-[Ps_opt, X_opt, err_opt] = perspectiveBundleAdjustment(Ps_opt, X_opt, images);
+prompt = ['Choose one of the following BA algorithms to continue:\n' ...
+          ,' 1. Perspective BA using LM\n 2. Euclidean BA using LM\n 3. Euclidean BA using GD\n'];
+x = input(prompt);
 
-fprintf('Reprojection error after Bundle Adjustment: %f\n', err_opt);
+if(x == 1)
+    % 'Perspective' Bundle Adjustment using Levenberg-Marquardt
+    % Compute initial reprojection error
+    reprojErr = computeReprojectionError(Ps, X_init, images);
+    fprintf('Initial reprojection error: %f\n', norm(reprojErr));
 
-% Plot the initial and final cube and camera trajectories
-figure;
-scatter3(X_init(1,:), X_init(2,:), X_init(3,:), 'filled');
-title('Initial structure and camera motion');
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
-axis('equal');
+    % Perform projective Bundle Adjustment (solves for the projection matrices
+    % and 3D points)
+    Ps_opt = Ps;
+    X_opt = X_init;
+    [Ps_opt, X_opt, err_opt] = perspectiveBundleAdjustment(Ps_opt, X_opt, images);
 
-figure;
-scatter3(X_opt(1,:), X_opt(2,:), X_opt(3,:), 'filled');
-title('Optimized structure and camera motion');
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
-axis('equal');
+    fprintf('Reprojection error after Bundle Adjustment: %f\n', err_opt);
+
+    % Plot the initial and final cube and camera trajectories
+    figure;
+    scatter3(X_init(1,:), X_init(2,:), X_init(3,:), 'filled');
+    title('Initial structure and camera motion');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis('equal');
+
+    figure;
+    scatter3(X_opt(1,:), X_opt(2,:), X_opt(3,:), 'filled');
+    title('Optimized structure and camera motion');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis('equal');
+
+elseif(x == 2)
+    % 'Euclidean' Bundle Adjustment using Levenberg-Marquardt
+    close all;
+    fprintf('Running Euclidean Bundle Adjustment with Levenberg Marquardt optimizer\n')
+    reprojErr = computeReprojectionError(Ps, X_init, images);
+    fprintf('Initial reprojection error: %f\n', norm(reprojErr));
+
+    Ps_opt = Ps;
+    X_opt = X_init;
+    [Ps_opt, X_opt, err_opt] = euclideanLmBundleAdjustment(Ps_opt, X_opt, images);
+
+    fprintf('Reprojection error after Bundle Adjustment: %f\n', err_opt);
+
+    % Plot the initial and final cube and camera trajectories
+    figure;
+    scatter3(X_init(1,:), X_init(2,:), X_init(3,:), 'filled');
+    title('Initial structure and camera motion');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis('equal');
+
+    figure;
+    scatter3(X_opt(1,:), X_opt(2,:), X_opt(3,:), 'filled');
+    title('Optimized structure and camera motion');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis('equal');
+
+
+else
+    % 'Euclidean' Bundle Adjustment using Gradient Descent
+    close all;
+    fprintf('Running Euclidean Bundle Adjustment with Gradient Descent optimizer\n')
+    reprojErr = computeReprojectionError(Ps, X_init, images);
+    fprintf('Initial reprojection error: %f\n', norm(reprojErr));
+
+    Ps_opt = Ps;
+    X_opt = X_init;
+    [Ps_opt, X_opt, err_opt] = euclideanGdBundleAdjustment(Ps_opt, X_opt, images);
+
+    fprintf('Reprojection error after Bundle Adjustment: %f\n', err_opt);
+
+    % Plot the initial and final cube and camera trajectories
+    figure;
+    scatter3(X_init(1,:), X_init(2,:), X_init(3,:), 'filled');
+    title('Initial structure and camera motion');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis('equal');
+
+    figure;
+    scatter3(X_opt(1,:), X_opt(2,:), X_opt(3,:), 'filled');
+    title('Optimized structure and camera motion');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis('equal');
+end
